@@ -18,9 +18,32 @@
 
 执行sql
 ```sql
+select a11, a2+1 as a21 from (select a1+1 as a11, a2 from chaicq0 where a1 > 1 and true) where a11 > 1;
 ```
 
-执行截图
+部分执行结果
+```
+=== Applying Rule org.apache.spark.sql.catalyst.optimizer.PushDownPredicates ===
+ Project [a11#17, (a2#11 + 1) AS a21#18]                     Project [a11#17, (a2#11 + 1) AS a21#18]
+!+- Filter (a11#17 > 1)                                      +- Project [(a1#10 + 1) AS a11#17, a2#11]
+!   +- Project [(a1#10 + 1) AS a11#17, a2#11]                   +- Filter (((a1#10 > 1) AND true) AND ((a1#10 + 1) > 1))
+!      +- Filter ((a1#10 > 1) AND true)                            +- Relation default.chaicq0[a1#10,a2#11] parquet
+!         +- Relation default.chaicq0[a1#10,a2#11] parquet
+
+22/05/08 16:10:59 WARN [main] PlanChangeLogger:
+=== Applying Rule org.apache.spark.sql.catalyst.optimizer.CollapseProject ===
+!Project [a11#17, (a2#11 + 1) AS a21#18]                       Project [(a1#10 + 1) AS a11#17, (a2#11 + 1) AS a21#18]
+!+- Project [(a1#10 + 1) AS a11#17, a2#11]                     +- Filter (((a1#10 > 1) AND true) AND ((a1#10 + 1) > 1))
+!   +- Filter (((a1#10 > 1) AND true) AND ((a1#10 + 1) > 1))      +- Relation default.chaicq0[a1#10,a2#11] parquet
+!      +- Relation default.chaicq0[a1#10,a2#11] parquet
+
+22/05/08 16:10:59 WARN [main] PlanChangeLogger:
+=== Applying Rule org.apache.spark.sql.catalyst.optimizer.BooleanSimplification ===
+ Project [(a1#10 + 1) AS a11#17, (a2#11 + 1) AS a21#18]     Project [(a1#10 + 1) AS a11#17, (a2#11 + 1) AS a21#18]
+!+- Filter (((a1#10 > 1) AND true) AND ((a1#10 + 1) > 1))   +- Filter ((a1#10 > 1) AND ((a1#10 + 1) > 1))
+    +- Relation default.chaicq0[a1#10,a2#11] parquet           +- Relation default.chaicq0[a1#10,a2#11] parquet
+
+```
 
 
 ### 构建一条 SQL，同时 apply 下面五条优化规则：
