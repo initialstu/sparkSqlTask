@@ -134,7 +134,20 @@ select distinct a11, a2+1 as a21, 'abc' as a33 from (select a1+1 as a11, a2 from
 
 执行命令
 ```shell
+spark-sql --jars /home/student3/chaicq/spark-sql-job/SparkJob-1.0-SNAPSHOT.jar --conf spark.sql.extensions=org.bigdata.sparkjob.MySparkSessionExtension
+```
+```sql
+select a1*1 from chaicq0;
 ```
 
-执行截图
+部分执行结果
+```
+22/05/08 17:56:31 WARN [main] MySparkRule: running MySparkRule
+22/05/08 17:56:31 WARN [main] PlanChangeLogger:
+=== Applying Rule org.bigdata.sparkjob.MySparkRule ===
+!Project [(a1#0 * 1) AS (a1 * 1)#14]              Project [a1#0 AS (a1 * 1)#14]
+ +- Relation default.chaicq0[a1#0,a2#1] parquet   +- Relation default.chaicq0[a1#0,a2#1] parquet
+
+
+```
 
