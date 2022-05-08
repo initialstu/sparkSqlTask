@@ -10,7 +10,7 @@
 执行截图
 
 
-## 题目二：构建 SQL 满足如下要求
+## 题目二：构建 SQL 满足如下要求（通过 set spark.sql.planChangeLog.level=WARN，确认执行）
 ### 构建一条 SQL，同时 apply 下面三条优化规则：
 * CombineFilters
 * CollapseProject
