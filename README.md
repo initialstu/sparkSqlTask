@@ -55,9 +55,73 @@ select a11, a2+1 as a21 from (select a1+1 as a11, a2 from chaicq0 where a1 > 1 a
 
 执行sql
 ```sql
+select distinct a11, a2+1 as a21, 'abc' as a33 from (select a1+1 as a11, a2 from chaicq0 where a1 > 1 and 1=1) where a11 > 1 except select b1, b2, 'cba' as b3 from chaicq1;
 ```
 
-执行截图
+部分执行结果
+```
+22/05/08 16:53:24 WARN [main] PlanChangeLogger:
+=== Applying Rule org.apache.spark.sql.catalyst.optimizer.ReplaceExceptWithAntiJoin ===
+!Except false                                                      Distinct
+!:- Distinct                                                       +- Join LeftAnti, (((a11#30 <=> b1#23) AND (a21#31 <=> b2#24)) AND (a33#32 <=> b3#33))
+!:  +- Project [a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]         :- Distinct
+!:     +- Filter (a11#30 > 1)                                         :  +- Project [a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]
+!:        +- Project [(a1#10 + 1) AS a11#30, a2#11]                   :     +- Filter (a11#30 > 1)
+!:           +- Filter ((a1#10 > 1) AND (1 = 1))                      :        +- Project [(a1#10 + 1) AS a11#30, a2#11]
+!:              +- Relation default.chaicq0[a1#10,a2#11] parquet      :           +- Filter ((a1#10 > 1) AND (1 = 1))
+!+- Project [b1#23, b2#24, cba AS b3#33]                              :              +- Relation default.chaicq0[a1#10,a2#11] parquet
+!   +- Relation default.chaicq1[b1#23,b2#24] parquet                  +- Project [b1#23, b2#24, cba AS b3#33]
+!                                                                        +- Relation default.chaicq1[b1#23,b2#24] parquet
+
+22/05/08 16:53:24 WARN [main] PlanChangeLogger:
+=== Applying Rule org.apache.spark.sql.catalyst.optimizer.ReplaceDistinctWithAggregate ===
+!Distinct                                                                                 Aggregate [a11#30, a21#31, a33#32], [a11#30, a21#31, a33#32]
+ +- Join LeftAnti, (((a11#30 <=> b1#23) AND (a21#31 <=> b2#24)) AND (a33#32 <=> b3#33))   +- Join LeftAnti, (((a11#30 <=> b1#23) AND (a21#31 <=> b2#24)) AND (a33#32 <=> b3#33))
+!   :- Distinct                                                                              :- Aggregate [a11#30, a21#31, a33#32], [a11#30, a21#31, a33#32]
+    :  +- Project [a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]                             :  +- Project [a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]
+    :     +- Filter (a11#30 > 1)                                                             :     +- Filter (a11#30 > 1)
+    :        +- Project [(a1#10 + 1) AS a11#30, a2#11]                                       :        +- Project [(a1#10 + 1) AS a11#30, a2#11]
+    :           +- Filter ((a1#10 > 1) AND (1 = 1))                                          :           +- Filter ((a1#10 > 1) AND (1 = 1))
+    :              +- Relation default.chaicq0[a1#10,a2#11] parquet                          :              +- Relation default.chaicq0[a1#10,a2#11] parquet
+    +- Project [b1#23, b2#24, cba AS b3#33]                                                  +- Project [b1#23, b2#24, cba AS b3#33]
+       +- Relation default.chaicq1[b1#23,b2#24] parquet                                         +- Relation default.chaicq1[b1#23,b2#24] parquet
+
+22/05/08 16:53:24 WARN [main] PlanChangeLogger:
+=== Applying Rule org.apache.spark.sql.catalyst.optimizer.PushDownPredicates ===
+ Aggregate [a11#30, a21#31, a33#32], [a11#30, a21#31, a33#32]                             Aggregate [a11#30, a21#31, a33#32], [a11#30, a21#31, a33#32]
+ +- Join LeftAnti, (((a11#30 <=> b1#23) AND (a21#31 <=> b2#24)) AND (a33#32 <=> b3#33))   +- Join LeftAnti, (((a11#30 <=> b1#23) AND (a21#31 <=> b2#24)) AND (a33#32 <=> b3#33))
+    :- Aggregate [a11#30, a21#31, a33#32], [a11#30, a21#31, a33#32]                          :- Aggregate [a11#30, a21#31, a33#32], [a11#30, a21#31, a33#32]
+    :  +- Project [a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]                             :  +- Project [a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]
+!   :     +- Filter (a11#30 > 1)                                                             :     +- Project [(a1#10 + 1) AS a11#30, a2#11]
+!   :        +- Project [(a1#10 + 1) AS a11#30, a2#11]                                       :        +- Filter (((a1#10 > 1) AND (1 = 1)) AND ((a1#10 + 1) > 1))
+!   :           +- Filter ((a1#10 > 1) AND (1 = 1))                                          :           +- Relation default.chaicq0[a1#10,a2#11] parquet
+!   :              +- Relation default.chaicq0[a1#10,a2#11] parquet                          +- Project [b1#23, b2#24, cba AS b3#33]
+!   +- Project [b1#23, b2#24, cba AS b3#33]                                                     +- Relation default.chaicq1[b1#23,b2#24] parquet
+!      +- Relation default.chaicq1[b1#23,b2#24] parquet
+
+22/05/08 16:53:24 WARN [main] PlanChangeLogger:
+=== Applying Rule org.apache.spark.sql.catalyst.optimizer.FoldablePropagation ===
+!Aggregate [a11#30, a21#31, a33#32], [a11#30, a21#31, a33#32]                                          Aggregate [a11#30, a21#31, abc], [a11#30, a21#31, abc AS a33#32]
+!+- Aggregate [a11#30, a21#31, a33#32], [a11#30, a21#31, a33#32]                                       +- Aggregate [a11#30, a21#31, abc], [a11#30, a21#31, abc AS a33#32]
+    +- Project [(a1#10 + 1) AS a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]                              +- Project [(a1#10 + 1) AS a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]
+!      +- Join LeftAnti, ((((a1#10 + 1) <=> b1#23) AND ((a2#11 + 1) <=> b2#24)) AND (abc <=> b3#33))         +- Join LeftAnti, ((((a1#10 + 1) <=> b1#23) AND ((a2#11 + 1) <=> b2#24)) AND (abc <=> cba))
+          :- Filter (((a1#10 > 1) AND (1 = 1)) AND ((a1#10 + 1) > 1))                                           :- Filter (((a1#10 > 1) AND (1 = 1)) AND ((a1#10 + 1) > 1))
+          :  +- Relation default.chaicq0[a1#10,a2#11] parquet                                                   :  +- Relation default.chaicq0[a1#10,a2#11] parquet
+          +- Project [b1#23, b2#24, cba AS b3#33]                                                               +- Project [b1#23, b2#24, cba AS b3#33]
+             +- Relation default.chaicq1[b1#23,b2#24] parquet                                                      +- Relation default.chaicq1[b1#23,b2#24] parquet
+
+22/05/08 16:53:24 WARN [main] PlanChangeLogger:
+=== Applying Rule org.apache.spark.sql.catalyst.optimizer.ConstantFolding ===
+ Aggregate [a11#30, a21#31, abc], [a11#30, a21#31, abc AS a33#32]                                    Aggregate [a11#30, a21#31, abc], [a11#30, a21#31, abc AS a33#32]
+ +- Aggregate [a11#30, a21#31, abc], [a11#30, a21#31, abc AS a33#32]                                 +- Aggregate [a11#30, a21#31, abc], [a11#30, a21#31, abc AS a33#32]
+    +- Project [(a1#10 + 1) AS a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]                            +- Project [(a1#10 + 1) AS a11#30, (a2#11 + 1) AS a21#31, abc AS a33#32]
+!      +- Join LeftAnti, ((((a1#10 + 1) <=> b1#23) AND ((a2#11 + 1) <=> b2#24)) AND (abc <=> cba))         +- Join LeftAnti, ((((a1#10 + 1) <=> b1#23) AND ((a2#11 + 1) <=> b2#24)) AND false)
+!         :- Filter (((a1#10 > 1) AND (1 = 1)) AND ((a1#10 + 1) > 1))                                         :- Filter (((a1#10 > 1) AND true) AND ((a1#10 + 1) > 1))
+          :  +- Relation default.chaicq0[a1#10,a2#11] parquet                                                 :  +- Relation default.chaicq0[a1#10,a2#11] parquet
+          +- Project [b1#23, b2#24, cba AS b3#33]                                                             +- Project [b1#23, b2#24, cba AS b3#33]
+             +- Relation default.chaicq1[b1#23,b2#24] parquet                                                    +- Relation default.chaicq1[b1#23,b2#24] parquet
+
+```
 
 
 
