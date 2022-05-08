@@ -4,6 +4,15 @@
 * 显示当前 Spark 版本和 Java 版本
 
 核心代码
+* SqlBase.g4
+```
+```
+
+* 增加ShowVersionCommand类
+```scala
+```
+
+* SparkSqlParser.scala增加visitShowVersion方法
 ```scala
 ```
 
