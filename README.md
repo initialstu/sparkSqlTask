@@ -6,17 +6,55 @@
 核心代码
 * SqlBase.g4
 ```
+statement
+    | SHOW VERSION                                                     #showVersion
+
+nonReserved
+    | VERSION
+
+ansiNonReserved
+    | VERSION
+
+//============================
+// Start of the keywords list
+//============================
+VERSION: 'VERSION' | 'V';
+```
+* 使用antlr4编译生成SqlBaseParser代码
+```
+# idea执行路径
+maven -> spark project calalyst -> plugins -> antlr4 -> antlr4:antlr4(双击执行)
 ```
 
 * 增加ShowVersionCommand类
 ```scala
+case class ShowVersionCommand() extends LeafRunnableCommand {
+
+  override val output: Seq[Attribute] =
+    Seq(AttributeReference("version", StringType)())
+
+  override def run(sparkSession: SparkSession): Seq[Row] = {
+    val sparkVersion = sparkSession.version
+    val javaVersion = System.getProperty("java.version")
+    val output = "Spark Version: %s, Java Version: %s".format(sparkVersion, javaVersion)
+    Seq(Row(output))
+  }
+}
 ```
 
 * SparkSqlParser.scala增加visitShowVersion方法
 ```scala
+override def visitShowVersion(ctx: ShowVersionContext): LogicalPlan = withOrigin(ctx) {
+    ShowVersionCommand()
+  }
 ```
 
-执行截图
+执行结果
+```
+spark-sql> show version;
+Spark Version: 3.2.0, Java Version: 1.8.0_252
+Time taken: 1.213 seconds, Fetched 1 row(s)
+```
 
 
 ## 题目二：构建 SQL 满足如下要求（通过 set spark.sql.planChangeLog.level=WARN，确认执行）
@@ -138,7 +176,29 @@ select distinct a11, a2+1 as a21, 'abc' as a33 from (select a1+1 as a11, a2 from
 * 静默规则，通过 set spark.sql.planChangeLog.level=WARN，确认执行到就行
 
 核心代码
+* MySparkRule.scala
 ```scala
+class MySparkRule(sparkSession: SparkSession) extends Rule[LogicalPlan] {
+
+  logWarning("running MySparkRule")
+
+  override def apply(plan: LogicalPlan): LogicalPlan = plan transformAllExpressions {
+    case Multiply(left, right, _) if right.isInstanceOf[Literal]
+      && right.asInstanceOf[Literal].value.asInstanceOf[Int] == 1 => left
+    case Multiply(left, right, _) if left.isInstanceOf[Literal]
+      && left.asInstanceOf[Literal].value.asInstanceOf[Int] == 1 => right
+  }
+}
+```
+* MySparkSessionExtension.scala
+```scala
+class MySparkSessionExtension extends (SparkSessionExtensions => Unit) {
+  override def apply(v1: SparkSessionExtensions): Unit = {
+    v1.injectOptimizerRule {
+      session => new MySparkRule(session)
+    }
+  }
+}
 ```
 
 执行命令
